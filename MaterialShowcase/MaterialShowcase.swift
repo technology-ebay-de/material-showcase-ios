@@ -10,11 +10,11 @@ import UIKit
 @objc public protocol MaterialShowcaseDelegate: class {
   @objc optional func showCaseWillDismiss(showcase: MaterialShowcase, didTapTarget:Bool)
   @objc optional func showCaseDidDismiss(showcase: MaterialShowcase, didTapTarget:Bool)
+  @objc optional func showCaseDidTapActionButton(showcase: MaterialShowcase, actionButton: UIButton)
 }
 
 public class MaterialShowcase: UIView {
-  
-  
+
   @objc public enum BackgroundTypeStyle: Int {
     case circle //default
     case full//full screen
@@ -80,6 +80,16 @@ public class MaterialShowcase: UIView {
   @objc public var secondaryTextFont: UIFont?
   @objc public var primaryTextAlignment: NSTextAlignment = .left
   @objc public var secondaryTextAlignment: NSTextAlignment = .left
+  @objc public var actionButtonBorderColor: UIColor?
+  @objc public var actionButtonBorderWidth: CGFloat = 0.0
+  @objc public var actionButtonTextColor: UIColor?
+  @objc public var actionButtonText: String?
+  @objc public var actionButtonBorderCornerRadius: CGFloat = 0.0
+  @objc public var actionButtonFont: UIFont?
+  @objc public var badgeText: String?
+  @objc public var badgeBackgroundColor: UIColor?
+  @objc public var badgeFont: UIFont?
+
   // Animation
   @objc public var aniComeInDuration: TimeInterval = 0.0
   @objc public var aniGoOutDuration: TimeInterval = 0.0
@@ -156,6 +166,8 @@ extension MaterialShowcase {
   @objc public func show(animated: Bool = true, completion handler: (()-> Void)?) {
     initViews()
     alpha = 0.0
+    self.instructionView.badgeLabel.alpha = 0.0
+
     containerView.addSubview(self)
     self.layoutIfNeeded()
     
@@ -170,6 +182,7 @@ extension MaterialShowcase {
         self.backgroundView.transform = CGAffineTransform(scaleX: 1, y: 1)
         self.backgroundView.center = center
         self.alpha = 1.0
+        self.instructionView.badgeLabel.alpha = 1.0
       }, completion: { _ in
         self.startAnimations()
       })
@@ -279,8 +292,8 @@ extension MaterialShowcase {
     }
     
     // Disable subview interaction to let users click to general view only
-    subviews.forEach({$0.isUserInteractionEnabled = false})
-    
+    subviews.forEach({$0.isUserInteractionEnabled = true})
+
     if isTapRecognizerForTargetView {
       //Add gesture recognizer for targetCopyView
       hiddenTargetHolderView.addGestureRecognizer(tapGestureRecoganizer())
@@ -302,12 +315,12 @@ extension MaterialShowcase {
       let center = targetRippleView.center//getOuterCircleCenterPoint(for: targetCopyView)
       
       if UIDevice.current.userInterfaceIdiom == .pad {
-        radius = 300.0
+        radius = 400.0
       } else {
         radius = getOuterCircleRadius(center: center, textBounds: instructionView.frame, targetBounds: targetRippleView.frame)
       }
       
-      backgroundView = UIView(frame: CGRect(x: 0, y: 0, width: radius * 2,height: radius * 2))
+      backgroundView = UIView(frame: CGRect(x: 0, y: 0, width: (radius * 2), height: radius * 2))
       backgroundView.center = center
       
       backgroundView.asCircle()
@@ -396,7 +409,8 @@ extension MaterialShowcase {
   /// Configures and adds primary label view
   private func addInstructionView(at center: CGPoint) {
     instructionView = MaterialShowcaseInstructionView()
-    
+    instructionView.delegate = self
+
     instructionView.primaryTextAlignment = primaryTextAlignment
     instructionView.primaryTextFont = primaryTextFont
     instructionView.primaryTextSize = primaryTextSize
@@ -408,7 +422,18 @@ extension MaterialShowcase {
     instructionView.secondaryTextSize = secondaryTextSize
     instructionView.secondaryTextColor = secondaryTextColor
     instructionView.secondaryText = secondaryText
-    
+
+    instructionView.actionButtonBorderColor = actionButtonBorderColor
+    instructionView.actionButtonBorderWidth = actionButtonBorderWidth
+    instructionView.actionButtonTextColor = actionButtonTextColor
+    instructionView.actionButtonText = actionButtonText
+    instructionView.actionButtonBorderCornerRadius = actionButtonBorderCornerRadius
+    instructionView.actionButtonFont = actionButtonFont
+
+    instructionView.badgeBackgroundColor = badgeBackgroundColor
+    instructionView.badgeText = badgeText
+    instructionView.badgeFont = badgeFont
+
     // Calculate x position
     var xPosition = LABEL_MARGIN
     
@@ -484,6 +509,7 @@ extension MaterialShowcase {
           self.targetHolderView.transform = CGAffineTransform(scaleX: 0.4, y: 0.4)
           self.backgroundView.transform = CGAffineTransform(scaleX: 1.3, y: 1.3)
           self.backgroundView.alpha = 0
+          self.instructionView.badgeLabel.alpha = 0
         })
         UIView.addKeyframe(withRelativeStartTime: 3/5, relativeDuration: 2/5, animations: {
           self.alpha = 0
@@ -541,5 +567,12 @@ extension MaterialShowcase {
   func orderedTabBarItemViews(of tabBar: UITabBar) -> [UIView] {
     let interactionViews = tabBar.subviews.filter({$0.isUserInteractionEnabled})
     return interactionViews.sorted(by: {$0.frame.minX < $1.frame.minX})
+  }
+}
+
+extension MaterialShowcase: MaterialShowcaseInstructionViewDelegate {
+  public func didTapActionButton(button: UIButton) {
+    completeShowcase(animated: true, didTapTarget: false)
+    self.delegate?.showCaseDidTapActionButton?(showcase: self, actionButton: button)
   }
 }
