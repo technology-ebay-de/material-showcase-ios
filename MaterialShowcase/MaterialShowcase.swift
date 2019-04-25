@@ -292,7 +292,12 @@ extension MaterialShowcase {
     }
     
     // Disable subview interaction to let users click to general view only
-    subviews.forEach({$0.isUserInteractionEnabled = true})
+    subviews.forEach({ view in
+        view.isUserInteractionEnabled = false
+    })
+
+    instructionView.isUserInteractionEnabled = true
+    backgroundView.isUserInteractionEnabled = true
 
     if isTapRecognizerForTargetView {
       //Add gesture recognizer for targetCopyView
